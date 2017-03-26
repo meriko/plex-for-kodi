@@ -118,7 +118,10 @@ class Checks:
         return False
 
     def isIPhoto(self):
-        return (self.title == "iPhoto" or self.container.title == "iPhoto" or (self.mediaType == "Image" or self.mediaType == "Movie"))
+        try:
+            return (self.title == "iPhoto" or self.container.title == "iPhoto" or (self.mediaType == "Image" or self.mediaType == "Movie"))
+        except:
+            return False
 
     def isDirectory(self):
         return self.name == "Directory" or self.name == "Playlist"
@@ -508,6 +511,10 @@ def listItems(server, path, libtype=None, watched=None, bytag=False, data=None, 
     data = data if data is not None else server.query(path)
     container = container or PlexContainer(data, path, server, path)
     for elem in data:
+        # Fix for channel framework not setting any type for a DirectoryObject
+        if not elem.attrib.get('type'):
+            elem.attrib['type'] = 'Directory'
+
         if libtype and elem.attrib.get('type') != libtype:
             continue
         if watched is True and elem.attrib.get('viewCount', 0) == 0:

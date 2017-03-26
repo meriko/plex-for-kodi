@@ -131,6 +131,11 @@ class PlexServer(plexresource.PlexResource, signalsmixin.SignalsMixin):
                     if video.items:
                         hubs.append(video)
                     return hubs
+                elif section == 'channels':
+                    channels = plexlibrary.ChannelsHub(False, server=self.server)
+                    if channels.items:
+                        hubs.append(channels)
+                    return hubs
                 else:
                     q = '/hubs/sections/%s' % section
 
@@ -147,6 +152,12 @@ class PlexServer(plexresource.PlexResource, signalsmixin.SignalsMixin):
     def playlists(self, start=0, size=10, hub=None):
         try:
             return plexobjects.listItems(self, '/playlists/all')
+        except exceptions.BadRequest:
+            return None
+
+    def channels(self):
+        try:
+            return plexobjects.listItems(self, '/channels/all')
         except exceptions.BadRequest:
             return None
 
@@ -169,11 +180,30 @@ class PlexServer(plexresource.PlexResource, signalsmixin.SignalsMixin):
         url = self.buildUrl(path, includeToken=True)
         util.LOG('{0} {1}'.format(method.__name__.upper(), re.sub('X-Plex-Token=[^&]+', 'X-Plex-Token=****', url)))
         response = method(url, **kwargs)
-        if response.status_code not in (200, 201):
+
+        # Handle errors from channels, e.g make it possible
+        # to present "Media is geoblocked" etc to the user
+        error = False
+        if response.status_code == 500:
+            try:
+                data = response.text.encode('utf8')
+                if data:
+                    result = ElementTree.fromstring(data)
+                    code = int(result.get('code'))
+                    error = not(2000 <= code <= 2006)
+                else:
+                    error = True
+            except:
+                error = True
+
+        elif response.status_code not in (200, 201):
+            error = True
+
+        if error:
             codename = http.status_codes.get(response.status_code, ['Unknown'])[0]
             raise exceptions.BadRequest('({0}) {1}'.format(response.status_code, codename))
-        data = response.text.encode('utf8')
 
+        data = response.text.encode('utf8')
         return ElementTree.fromstring(data) if data else None
 
     def getImageTranscodeURL(self, path, width, height, **extraOpts):

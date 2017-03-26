@@ -31,7 +31,6 @@ class PlexRequest(http.HttpRequest):
             data = ElementTree.fromstring(self.getToStringWithTimeout(timeout))
 
         response = plexresult.PlexResult(self.server, self.path)
-        response.setResponse(self.event)
         response.parseFakeXMLResponse(data)
 
         return response

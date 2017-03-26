@@ -701,10 +701,12 @@ class PlexPlayer(xbmc.Player, signalsmixin.SignalsMixin):
                 self.handler.seekOnStart = meta.playStart * 1000
             self.handler.mode = self.handler.MODE_ABSOLUTE
 
-        url = util.addURLParams(url, {
-            'X-Plex-Platform': 'Chrome',
-            'X-Plex-Client-Identifier': plexapp.INTERFACE.getGlobal('clientIdentifier')
-        })
+        if 'plex' in url:
+            url = util.addURLParams(url, {
+                'X-Plex-Platform': 'Chrome',
+                'X-Plex-Client-Identifier': plexapp.INTERFACE.getGlobal('clientIdentifier')
+            })
+
         li = xbmcgui.ListItem(self.video.title, path=url, thumbnailImage=self.video.defaultThumb.asTranscodedImageURL(256, 256))
         vtype = self.video.type if self.video.type in ('movie', 'episode', 'musicvideo') else 'video'
         li.setInfo('video', {

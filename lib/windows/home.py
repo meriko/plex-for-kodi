@@ -15,6 +15,7 @@ from plexnet import plexapp
 
 import windowutils
 import playlists
+import channels
 import busy
 import opener
 import search
@@ -115,6 +116,10 @@ class PlaylistsSection(object):
     type = 'playlists'
     title = T(32333, 'Playlists')
 
+class ChannelSection(object):
+    key = 'channels'
+    type = 'channels'
+    title = 'Channels'
 
 class ServerListItem(kodigui.ManagedListItem):
     def init(self):
@@ -247,6 +252,8 @@ class HomeWindow(kodigui.BaseWindow, util.CronReceiver):
         # PLAYLISTS
         'playlists.audio': {'index': 5, 'text2lines': True, 'title': T(32048, 'Audio')},
         'playlists.video': {'index': 6, 'text2lines': True, 'ar16x9': True, 'title': T(32053, 'Video')},
+        # CHANNELS
+        'channels.recentlyviewed': {'index': 5, 'text2lines': True, 'ar16x9': True, 'title': 'Recently Viewed'}
     }
 
     THUMB_POSTER_DIM = (244, 361)
@@ -629,10 +636,16 @@ class HomeWindow(kodigui.BaseWindow, util.CronReceiver):
             plli.setProperty('item', '1')
             items.append(plli)
 
+        channels = plexapp.SERVERMANAGER.selectedServer.channels()
+        if channels:
+            cli = kodigui.ManagedListItem('Channels', thumbnailImage='script.plex/home/type/channels.png', data_source=ChannelSection)
+            cli.setProperty('item', '1')
+            items.append(cli)
+
         sections = plexapp.SERVERMANAGER.selectedServer.library.sections()
 
         if plexapp.SERVERMANAGER.selectedServer.hasHubs():
-            self.tasks = [SectionHubsTask().setup(s, self.sectionHubsCallback) for s in [HomeSection, PlaylistsSection] + sections]
+            self.tasks = [SectionHubsTask().setup(s, self.sectionHubsCallback) for s in [HomeSection, PlaylistsSection, ChannelSection] + sections]
             backgroundthread.BGThreader.addTasks(self.tasks)
 
         for section in sections:
@@ -852,6 +865,10 @@ class HomeWindow(kodigui.BaseWindow, util.CronReceiver):
         mli.setProperty('thumb.fallback', 'script.plex/thumb_fallbacks/{0}.png'.format(obj.playlistType == 'audio' and 'music' or 'movie'))
         return mli
 
+    def createChannelListItem(self, obj, wide=False):
+        mli = self.createSimpleListItem(obj, *self.THUMB_SQUARE_DIM)
+        return mli
+
     def unhandledHub(self, self2, obj, wide=False):
         util.DEBUG_LOG('Unhandled Hub item: {0}'.format(obj.type))
 
@@ -866,7 +883,8 @@ class HomeWindow(kodigui.BaseWindow, util.CronReceiver):
         'photodirectory': createPhotoListItem,
         'clip': createClipListItem,
         'artist': createArtistListItem,
-        'playlist': createPlaylistListItem
+        'playlist': createPlaylistListItem,
+        'channel': createChannelListItem
     }
 
     def createListItem(self, obj, wide=False):
@@ -948,8 +966,10 @@ class HomeWindow(kodigui.BaseWindow, util.CronReceiver):
 
         if section.type in ('show', 'movie', 'artist', 'photo'):
             self.processCommand(opener.sectionClicked(section))
-        elif section.type in ('playlists',):
+        elif section.type in ('playlists'):
             self.processCommand(opener.handleOpen(playlists.PlaylistsWindow))
+        elif section.type in ('channels'):
+            self.processCommand(opener.handleOpen(channels.ChannelWindow))
 
     def onNewServer(self, **kwargs):
         self.showServers(from_refresh=True)

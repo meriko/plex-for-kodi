@@ -56,7 +56,7 @@ class MediaDecisionEngine(object):
 
         # Only use the first indirect media item
         if indirect and candidates:
-            candidates = candidates[0]
+            candidates = [candidates[0]]
 
         # Make sure we have at least one valid item, regardless of availability
         if len(candidates) == 0:

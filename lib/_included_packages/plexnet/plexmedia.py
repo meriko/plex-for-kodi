@@ -47,20 +47,20 @@ class PlexMedia(plexobjects.PlexObject):
 
         part = self.parts[0]
         if part is None:
-            util.DEBUG("Failed to resolve indirect media: missing valid part")
+            util.DEBUG_LOG("Failed to resolve indirect media: missing valid part")
             return None
 
         postBody = None
         postUrl = part.postURL
-        request = plexrequest.PlexRequest(self.getServer(), part.key, postUrl is not None and "POST" or "GET")
+        request = plexrequest.PlexRequest(self.getServer(), part.key, postUrl != '' and "POST" or "GET")
 
-        if postUrl is not None:
-            util.DEBUG("Fetching content for indirect media POST URL: {0}".format(postUrl))
+        if postUrl != '':
+            util.DEBUG_LOG("Fetching content for indirect media POST URL: {0}".format(postUrl))
             # Force setting the certificate to handle following https redirects
             postRequest = http.HttpRequest(postUrl, None, True)
             postResponse = postRequest.getToStringWithTimeout(30)
             if len(postResponse) > 0 and type(postRequest.event) == "roUrlEvent":
-                util.DEBUG("Retrieved data from postURL, posting to resolve container")
+                util.DEBUG_LOG("Retrieved data from postURL, posting to resolve container")
                 crlf = chr(13) + chr(10)
                 postBody = ""
                 for header in postRequest.event.getResponseHeadersArray():
@@ -68,20 +68,24 @@ class PlexMedia(plexobjects.PlexObject):
                         postBody = postBody + name + ": " + header[name] + crlf
                 postBody = postBody + crlf + postResponse
             else:
-                util.DEBUG("Failed to resolve indirect media postUrl")
-                self.Set("indirect", "-1")
+                util.DEBUG_LOG("Failed to resolve indirect media postUrl")
+                self.set("indirect", "-1")
                 return self
 
             request.addParam("postURL", postUrl)
 
         response = request.doRequestWithTimeout(30, postBody)
-
         item = response.items[0]
-        if item is None or item.mediaItems[0] is None:
-            util.DEBUG("Failed to resolve indirect media: no media items")
+
+        if item is None:
+            util.DEBUG_LOG("Failed to resolve indirect media: no item")
             self.indirect = -1
             return self
 
+        self.parts[0].key = item.key
+        self.indirect = -1
+        return self
+        ''' TODO: Removed for now 
         media = item.mediaItems[0]
 
         # Add indirect headers to the media item
@@ -96,6 +100,7 @@ class PlexMedia(plexobjects.PlexObject):
             media.id = self.id
 
         return media.resolveIndirect()
+        '''
 
     def __str__(self):
         extra = []

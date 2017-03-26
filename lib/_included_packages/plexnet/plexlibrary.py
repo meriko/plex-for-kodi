@@ -356,8 +356,17 @@ class Generic(plexobjects.PlexObject):
     TYPE = 'Directory'
 
     def __repr__(self):
-        title = self.title.replace(' ', '.')[0:20]
+        title = self.title.replace(' ', '.')[0:20].encode('utf-8')
         return '<{0}:{1}:{2}>'.format(self.__class__.__name__, self.key, title)
+
+@plexobjects.registerLibType
+class Channel(plexobjects.PlexObject):
+    TYPE = 'channel'
+
+    def __repr__(self):
+        title = self.title.replace(' ', '.')[0:20].encode('utf-8')
+        return '<{0}:{1}:{2}>'.format(self.__class__.__name__, self.key, title)
+
 
 
 @plexobjects.registerLibType
@@ -551,6 +560,23 @@ class VideoPlaylistHub(PlaylistHub):
     type = 'video'
     hubIdentifier = 'playlists.video'
 
+
+class ChannelsHub(BaseHub):
+    TYPE = "Hub"
+    type = 'channel'
+    hubIdentifier = 'channels.recentlyviewed'
+
+    def init(self, data):
+        self.path = '/channels/recentlyViewed'
+        self.items = plexobjects.listItems(self.server, self.path)
+
+    def extend(self, start=None, size=None):
+        items = plexobjects.listItems(self.server, self.path)
+
+        if not items:
+            return
+
+        return items
 
 SECTION_TYPES = {
     MovieSection.TYPE: MovieSection,

@@ -155,7 +155,7 @@ class PlexPlayer(object):
 
         return self.metadata
 
-    def isLiveHls(url=None, headers=None):
+    def isLiveHls(self, url=None, headers=None):
         # Check to see if this is a live HLS playlist to fix two issues. One is a
         # Roku workaround since it doesn't obey the absence of EXT-X-ENDLIST to
         # start playback at the END of the playlist. The second is for us to know
@@ -198,6 +198,7 @@ class PlexPlayer(object):
 
                 if decision.isSuccess():
                     util.LOG("MDE: Server was happy with client's original decision. {0}".format(decision))
+                    return None
                 elif decision.isDecision(True):
                     util.WARN_LOG("MDE: Server was unhappy with client's original decision. {0}".format(decision))
                     return decision.getDecision()
@@ -356,7 +357,7 @@ class PlexPlayer(object):
         if self.media.protocol == "hls":
             obj.streamFormat = "hls"
             obj.switchingStrategy = "full-adaptation"
-            obj.live = self.isLiveHLS(obj.streamUrls[0], self.media.indirectHeaders)
+            obj.live = self.isLiveHls(obj.streamUrls[0], self.media.indirectHeaders)
         else:
             obj.streamFormat = self.media.get('container', 'mp4')
             if obj.streamFormat == "mov" or obj.streamFormat == "m4v":

@@ -51,6 +51,8 @@ def open(obj):
         return directorClicked(obj)
     elif obj.TYPE in ('Role'):
         return actorClicked(obj)
+    elif obj.TYPE == 'channel':
+        return channelClicked(obj)
 
 
 def handleOpen(winclass, **kwargs):
@@ -114,6 +116,10 @@ def photoDirectoryClicked(photodirectory):
 def playlistClicked(pl):
     import playlist
     return handleOpen(playlist.PlaylistWindow, playlist=pl)
+
+def channelClicked(channel):
+    import channels
+    return handleOpen(channels.ChannelWindow, item=channel)
 
 
 def sectionClicked(section, filter_=None):
