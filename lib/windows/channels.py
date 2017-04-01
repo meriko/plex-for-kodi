@@ -173,6 +173,14 @@ class ChannelWindow(kodigui.ControlledWindow, windowutils.UtilMixin):
             duration = util.durationToText(int(duration))
             mli.setProperty('duration', duration)
 
+        season = obj.get('season')
+        if season:
+            mli.setProperty('season', season)
+            
+        episode = obj.get('index')
+        if episode:
+            mli.setProperty('episode', episode)
+
         return mli
 
     @busy.dialog()
