@@ -135,7 +135,7 @@ class PlaylistsSection(object):
 class ChannelSection(object):
     key = 'channels'
     type = 'channels'
-    title = 'Channels'
+    title = T(32458, 'Channels')
 
 class ServerListItem(kodigui.ManagedListItem):
     def init(self):

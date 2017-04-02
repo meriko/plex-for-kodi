@@ -926,3 +926,19 @@ msgstr ""
 msgctxt "#32457"
 msgid "Sign In"
 msgstr ""
+
+msgctxt "#32458"
+msgid "Channels"
+msgstr ""
+
+msgctxt "#32459"
+msgid "No content"
+msgstr ""
+
+msgctxt "#32460"
+msgid "This channel is not responding"
+msgstr ""
+
+msgctxt "#32461"
+msgid "No content available"
+msgstr ""

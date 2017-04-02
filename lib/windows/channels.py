@@ -19,6 +19,8 @@ from plexnet import playqueue
 import library
 from plexnet import plexobjects
 
+from lib.util import T
+
 class ChannelWindow(kodigui.ControlledWindow, windowutils.UtilMixin):
     xmlFile = 'script-plex-channel.xml'
     path = util.ADDON.getAddonInfo('path')
@@ -40,12 +42,13 @@ class ChannelWindow(kodigui.ControlledWindow, windowutils.UtilMixin):
         self.exitCommand = None
         self.item = kwargs.get('item')
         self.parent = kwargs.get('parent')
+        self.art = kwargs.get('art')
 
     def onFirstInit(self):
         self.itemControl = kodigui.ManagedControlList(self, self.ITEM_ID, 5)
 
         if not self.item:
-            title = 'Channels'
+            title = T(32458, 'Channels')
         else:
             title = self.item.title        
             try: title =  title + ' / ' + self.parent.title
@@ -70,16 +73,17 @@ class ChannelWindow(kodigui.ControlledWindow, windowutils.UtilMixin):
             except:
                 thumb = None
 
-        try: 
+        try:
             art = self.item.art
+            self.art = art
         except:
             try:
                 if self.parent.art != '':
                     art = self.parent.art
                 else:
-                    art = thumb
+                    art = self.art
             except:
-                art = thumb
+                art = self.art
 
         if thumb:
             thumb = self.buildImageUrl(path=thumb, transcode=False)
@@ -135,26 +139,46 @@ class ChannelWindow(kodigui.ControlledWindow, windowutils.UtilMixin):
             # TODO: Add search
             pass
         else:
-            self.openWindow(ChannelWindow, item=mli.dataSource, parent=self.item)
+            self.openWindow(ChannelWindow, item=mli.dataSource, parent=self.item, art=self.art)
 
     def createListItem(self, obj):
         try: thumb = obj.get('thumb')
         except: thumb = None
 
         try: art = obj.get('art')
-        except: art = None
+        except: art = self.art
 
         if art:
             art = self.buildImageUrl(path=art)
-        else:
-            art = self.buildImageUrl(path=thumb)
+        #else:
+        #    art = self.buildImageUrl(path=thumb)
 
         if thumb and not thumb.startswith("http"):
             thumb = plexapp.SERVERMANAGER.selectedServer.buildUrl(thumb)
 
+        title = obj.get('title')
+        subtitle = obj.get('grandparentTitle')
+        season = obj.get('parentIndex')
+        episode = obj.get('index')
+
+        if season and episode:
+            if int(season) < 10:
+                season = '0%s' % season
+                
+            if int(episode) < 10:
+                episode = '0%s' % episode
+
+            info = 'S%sE%s' % (season, episode)
+            if not info in title:
+                title = '%s - %s' % (title, info)
+        elif episode:
+            title = '%s. %s' % (episode, title)
+        elif season:
+            subtitle = '%s - %s %s' % (subtitle, T(32303, 'Season'), season)
+
         mli = kodigui.ManagedListItem(
-            label=obj.get('title') or '',
-            label2=obj.get('grandparentTitle') or '',
+            label=title or '',
+            label2=subtitle or '',
             iconImage=thumb,
             thumbnailImage=thumb,
             data_source=obj
@@ -173,14 +197,6 @@ class ChannelWindow(kodigui.ControlledWindow, windowutils.UtilMixin):
             duration = util.durationToText(int(duration))
             mli.setProperty('duration', duration)
 
-        season = obj.get('season')
-        if season:
-            mli.setProperty('season', season)
-            
-        episode = obj.get('index')
-        if episode:
-            mli.setProperty('episode', episode)
-
         return mli
 
     @busy.dialog()
@@ -190,18 +206,21 @@ class ChannelWindow(kodigui.ControlledWindow, windowutils.UtilMixin):
         if self.item:
             path = self.item.get('key')
         else:
-            path = plexapp.SERVERMANAGER.selectedServer.buildUrl('/channels/all')
+            path = '/channels/all'
         
         try:    
             objs = plexobjects.listItems(server=plexapp.SERVERMANAGER.selectedServer, path=path)
         except:
-            util.messageDialog(heading="No Content", msg="This channel is not responding")
+            util.messageDialog(heading=T(32459, 'No content'), msg=T(32460, 'This channel is not responding'))
             self.doClose()
             return
 
         is_directory = True
 
         for obj in objs:
+            if obj.key is None:
+                continue
+
             mli = self.createListItem(obj)
             if mli:
                 items.append(mli)
@@ -211,12 +230,12 @@ class ChannelWindow(kodigui.ControlledWindow, windowutils.UtilMixin):
 
         self.itemControl.addItems(items)
 
-        if self.item and not items:
+        if self.item and len(items) < 1:
             container = plexapp.SERVERMANAGER.selectedServer.query(self.item.get('key'))
 
             heading = container.attrib.get('header')
             if heading is None:
-                heading = "No content"
+                heading = T(32459, 'No content')
 
             msg = container.attrib.get('message')
             if msg is None:
@@ -224,14 +243,14 @@ class ChannelWindow(kodigui.ControlledWindow, windowutils.UtilMixin):
                     code = int(container.attrib.get('code'))
 
                     if code == 2000:
-                        msg = 'This channel is not responding.'
+                        msg = T(32460, 'This channel is not responding')
                     else:
                         msg = container.attrib.get('status')
                 except:
                     pass
 
                 if msg is None:
-                    msg = "No content found"
+                    msg = T(32461, 'No content available')
 
             util.messageDialog(heading=heading, msg=msg)
 
@@ -246,6 +265,7 @@ class ChannelWindow(kodigui.ControlledWindow, windowutils.UtilMixin):
         if not path.startswith('http'):
             path = plexapp.SERVERMANAGER.selectedServer.buildUrl(path)
 
+        path = path.encode('utf-8')
         if transcode:
             return plexapp.SERVERMANAGER.selectedServer.getImageTranscodeURL(path=path, width=1920, height=1080, blur=5, opacity=10, background=colors.noAlpha.Background)
         else:
